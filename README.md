@@ -59,7 +59,7 @@ G --> A
 ### Local Installation
 1. Clone the repository:
 ```bash
-git clone https://github.com/TANISHQgarg60/RAGPilot.git
+git clone (https://github.com/Dhruvrstar/deepdocdive.git)
 cd RAGPilot
 ```
 
