@@ -17,7 +17,7 @@ DeepDocDive is an intelligent conversational assistant that allows you to upload
 ## Live Demo
 
 Experience DeepDocDive immediately:  
-👉 [[https://deepdocdive.streamlit.app](https://deepdocdivee.streamlit.app/)]
+👉 [[https://deepdocdivee.streamlit.app](https://deepdocdivee.streamlit.app/)]
 
 ## Tech Stack 🧩
 
