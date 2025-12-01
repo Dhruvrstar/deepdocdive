@@ -4,8 +4,6 @@ import tempfile
 import uuid
 from typing import List, Dict, Any
 from pathlib import Path
-
-# Core libraries
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import FAISS
@@ -18,19 +16,14 @@ from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
-# Fixed imports - using the correct module paths for newer LangChain versions
 try:
-    # Try newer import path first
     from langchain.chains.history_aware_retriever import create_history_aware_retriever
     from langchain.chains.retrieval import create_retrieval_chain
     from langchain.chains.combine_documents import create_stuff_documents_chain
 except ImportError:
-    # Fallback to alternative import locations
     try:
         from langchain_core.runnables import RunnablePassthrough
         from langchain_core.output_parsers import StrOutputParser
-        
-        # We'll need to create custom implementations if imports fail
         def create_history_aware_retriever(llm, retriever, prompt):
             """Fallback implementation"""
             from langchain_core.runnables import RunnableBranch, RunnableLambda
@@ -88,14 +81,12 @@ except ImportError:
         st.stop()
 
 
-# Page configuration
 st.set_page_config(
     page_title="RAG Chat Assistant",
     page_icon="🤖",
     layout="wide"
 )
 
-# Initialize session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "chat_history" not in st.session_state:
@@ -105,7 +96,6 @@ if "vector_store" not in st.session_state:
 if "conversation_chain" not in st.session_state:
     st.session_state.conversation_chain = None
 
-# Chat message history management
 def get_session_history(session_id: str) -> BaseChatMessageHistory:
     if session_id not in st.session_state.chat_history:
         st.session_state.chat_history[session_id] = ChatMessageHistory()
@@ -115,7 +105,6 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
 def create_embeddings():
     """Create HuggingFace embeddings with caching"""
     try:
-        # Try to get HF token from secrets, otherwise use default
         hf_token = st.secrets.get("hf_token", None)
         return HuggingFaceEmbeddings(
             model_name="sentence-transformers/all-MiniLM-L6-v2",
@@ -133,11 +122,9 @@ def create_vector_store(pdf_files, _embeddings):
         return None
     
     try:
-        # Process PDFs
         all_documents = []
         
         for pdf_file in pdf_files:
-            # Create temporary file with unique name
             temp_file = tempfile.NamedTemporaryFile(
                 delete=False, 
                 suffix=".pdf",
@@ -147,20 +134,17 @@ def create_vector_store(pdf_files, _embeddings):
             temp_file.close()
             
             try:
-                # Load PDF
                 loader = PyPDFLoader(temp_file.name)
                 documents = loader.load()
                 all_documents.extend(documents)
             except Exception as e:
                 st.error(f"Error loading PDF {pdf_file.name}: {str(e)}")
             finally:
-                # Clean up temporary file
                 os.unlink(temp_file.name)
         
         if not all_documents:
             return None
         
-        # Split documents
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=5000,
             chunk_overlap=200,
@@ -168,7 +152,6 @@ def create_vector_store(pdf_files, _embeddings):
         )
         splits = text_splitter.split_documents(all_documents)
         
-        # Create vector store using FAISS
         vector_store = FAISS.from_documents(
             documents=splits,
             embedding=_embeddings
@@ -183,20 +166,17 @@ def create_vector_store(pdf_files, _embeddings):
 def create_conversation_chain(vector_store, groq_api_key):
     """Create conversational RAG chain"""
     try:
-        # Initialize Groq LLM with updated model
         llm = ChatGroq(
             groq_api_key=groq_api_key,
-            model_name="llama-3.3-70b-versatile",  # Updated to supported model
+            model_name="llama-3.3-70b-versatile",  
             temperature=0.1
         )
         
-        # Create retriever
         retriever = vector_store.as_retriever(
             search_type="similarity",
             search_kwargs={"k": 6}
         )
         
-        # Contextualize question prompt
         contextualize_q_system_prompt = """Given a chat history and the latest user question \
 which might reference context in the chat history, formulate a standalone question \
 which can be understood without the chat history. Do NOT answer the question, \
@@ -212,7 +192,6 @@ just reformulate it if needed and otherwise return it as is."""
             llm, retriever, contextualize_q_prompt
         )
         
-        # QA system prompt
         qa_system_prompt = """You are an assistant for question-answering tasks. \
 Use the following pieces of retrieved context to answer the question. \
 If you don't know the answer, just say that you don't know. \
@@ -230,7 +209,6 @@ Use three sentences maximum and keep the answer concise.
         
         rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
         
-        # Create conversational chain with history
         conversational_rag_chain = RunnableWithMessageHistory(
             rag_chain,
             get_session_history,
@@ -245,29 +223,24 @@ Use three sentences maximum and keep the answer concise.
         st.error(f"Error creating conversation chain: {str(e)}")
         return None
 
-# Main UI
 st.title("🤖 RAG Chat Assistant")
 st.write("Upload PDFs and chat with your documents using AI")
 
-# Sidebar for configuration
 with st.sidebar:
     st.header("Configuration")
     
-    # API Key input
     groq_api_key = st.text_input(
         "Groq API Key",
         type="password",
         help="Enter your Groq API key to use the Llama 3.3 70B model"
     )
-    
-    # Session ID input
+
     session_id = st.text_input(
         "Session ID",
         value="default",
         help="Enter a session ID to maintain separate conversation histories"
     )
     
-    # PDF Upload
     st.header("Document Upload")
     uploaded_files = st.file_uploader(
         "Upload PDF files",
@@ -279,23 +252,19 @@ with st.sidebar:
     if uploaded_files:
         st.success(f"Uploaded {len(uploaded_files)} file(s)")
         
-        # Process PDFs button
         if st.button("Process PDFs", type="primary"):
             if not groq_api_key:
                 st.warning("Please enter your Groq API key first")
             else:
                 with st.status("Processing PDFs...") as status:
-                    # Create embeddings
                     status.update(label="Creating embeddings...")
                     embeddings = create_embeddings()
                     
                     if embeddings:
-                        # Create vector store
                         status.update(label="Creating vector store...")
                         vector_store = create_vector_store(uploaded_files, embeddings)
                         
                         if vector_store:
-                            # Create conversation chain
                             status.update(label="Setting up conversation chain...")
                             conversation_chain = create_conversation_chain(vector_store, groq_api_key)
                             
@@ -311,7 +280,6 @@ with st.sidebar:
                     else:
                         status.update(label="Failed to create embeddings", state="error")
     
-    # Technical details expander
     with st.expander("Technical Details"):
         st.write("""
         **Models Used:**
@@ -330,42 +298,34 @@ with st.sidebar:
         - Multi-file PDF support
         """)
 
-# Main chat interface
 if not groq_api_key:
     st.warning("⚠️ Please enter your Groq API key in the sidebar to get started")
     st.info("You can get a free API key from [Groq Console](https://console.groq.com/)")
 elif not st.session_state.conversation_chain:
     st.info("📄 Please upload and process PDF files to start chatting")
 else:
-    # Display chat messages
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
     
-    # Chat input
     if prompt := st.chat_input("Ask a question about your documents..."):
-        # Add user message to chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
         
-        # Generate response
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
                 try:
-                    # Get response from conversation chain
                     response = st.session_state.conversation_chain.invoke(
                         {"input": prompt},
                         config={"configurable": {"session_id": session_id}}
                     )
-                    
-                    # Extract answer from response
+
                     answer = response.get("answer", "I couldn't generate a response.")
-                    
-                    # Display response
+
                     st.markdown(answer)
                     
-                    # Add assistant response to chat history
+
                     st.session_state.messages.append({"role": "assistant", "content": answer})
                     
                 except Exception as e:
@@ -373,13 +333,13 @@ else:
                     st.error(error_msg)
                     st.session_state.messages.append({"role": "assistant", "content": error_msg})
     
-    # Clear chat button
+
     if st.button("Clear Chat History"):
         st.session_state.messages = []
         if session_id in st.session_state.chat_history:
             st.session_state.chat_history[session_id] = ChatMessageHistory()
         st.rerun()
 
-# Footer
+
 st.markdown("---")
 st.markdown("Built with Streamlit, LangChain, and Groq")
