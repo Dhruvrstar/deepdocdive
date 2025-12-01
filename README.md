@@ -116,4 +116,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Experience document intelligence today: [https://deepdocdive.streamlit.app](https://deepdocdive.streamlit.app)**
+**Experience document intelligence today: [https://deepdocdivee.streamlit.app](https://deepdocdivee.streamlit.app)**
