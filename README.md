@@ -24,7 +24,7 @@ Experience DeepDocDive immediately:
 | Component              | Technology                |
 |------------------------|---------------------------|
 | **Frontend**           | Streamlit                 |
-| **LLM**                | Groq API (Gemma2-9b-It)  |
+| **LLM**                | Groq API (Llama 3.3 70B)  |
 | **Embeddings**         | Hugging Face (MiniLM-L6) |
 | **Vector Store**       | FAISS (Facebook AI)      |
 | **Text Processing**    | LangChain                |
@@ -75,7 +75,7 @@ streamlit run streamlit_app.py
 
 ## Usage Guide
 
-1. Visit the [live app](https://deepdocdive.streamlit.app) or run locally
+1. Visit the [live app](https://deepdocdivee.streamlit.app) or run locally
 2. Enter your Groq API key in the sidebar
 3. Upload one or more PDF documents
 4. Click "Process PDFs" to build the knowledge base
